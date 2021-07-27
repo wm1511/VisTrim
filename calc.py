@@ -1,10 +1,5 @@
-import librosa
-import librosa.display
 import numpy as np
-import soundfile as sf
-import scipy.io
 import scipy.io.wavfile
-import time
 
 
 def clear_array(array):
@@ -25,17 +20,6 @@ def clear_array(array):
                 begin = current + 1
             current += 1
     return np.concatenate(part_arrays)
-
-
-# def indices_to_values(index_array, value_array):
-#     current = 0
-#     result_array = np.zeros((value_array.size,), dtype=float)
-#     for _ in value_array:
-#         if current + 1 < value_array.size:
-#             if current in index_array:
-#                 result_array[current] = value_array[current]
-#             current += 1
-#     return result_array
 
 
 def indices_to_values(index_array, value_array):
@@ -59,17 +43,29 @@ def replace_arrays(source_array, silence_array):
 
 class SoundWave:
     def __init__(self, path):
-        self.y, self.sr = librosa.load(path)
-        print(time.perf_counter())
-        self.sa = np.empty(self.y.size,)
-        print(time.perf_counter())
+        self.sr, self.y = scipy.io.wavfile.read(path)
+        self.sa = np.empty(np.shape(self.y))
 
     def detect_silence(self, top):
-        silent_indices = clear_array(np.where(abs(self.y) < top)[0])
-        self.sa = indices_to_values(silent_indices, self.y)
+        trim_level = np.amax(self.y) * top
+
+        if len(np.shape(self.y)) == 1:
+            silent_indices = clear_array(np.where(abs(self.y) < trim_level)[0])
+            self.sa = indices_to_values(silent_indices, self.y)
+
+        elif len(np.shape(self.y)) == 2:
+            channel1 = clear_array(np.where(abs(self.y[:, 0]) < trim_level)[0])
+            channel2 = clear_array(np.where(abs(self.y[:, 1]) < trim_level)[0])
+            if channel1.size > channel2.size:
+                channel2 = np.pad(channel2, (int((channel1.size - channel2.size)/2),), 'symmetric')
+            elif channel2.size > channel1.size:
+                channel1 = np.pad(channel1, (int((channel2.size - channel1.size)/2),), 'symmetric')
+            channel1_silence = indices_to_values(channel1, self.y[:, 0])
+            channel2_silence = indices_to_values(channel2, self.y[:, 1])
+            self.sa = np.column_stack((channel1_silence, channel2_silence))
 
     def cut_silence(self):
         self.y = replace_arrays(self.y, self.sa)
 
     def export(self, path):
-        sf.write(path, self.y, self.sr, subtype='PCM_24')
+        scipy.io.wavfile.write(path, self.sr, self.y)
