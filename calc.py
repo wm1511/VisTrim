@@ -49,11 +49,11 @@ class SoundWave:
     def detect_silence(self, top):
         trim_level = np.amax(self.y) * top
 
-        if len(np.shape(self.y)) == 1:
+        if np.shape(self.y)[1] == 1:
             silent_indices = clear_array(np.where(abs(self.y) < trim_level)[0])
             self.sa = indices_to_values(silent_indices, self.y)
 
-        elif len(np.shape(self.y)) == 2:
+        elif np.shape(self.y)[1] == 2:
             channel1 = clear_array(np.where(abs(self.y[:, 0]) < trim_level)[0])
             channel2 = clear_array(np.where(abs(self.y[:, 1]) < trim_level)[0])
             if channel1.size > channel2.size:
@@ -64,8 +64,20 @@ class SoundWave:
             channel2_silence = indices_to_values(channel2, self.y[:, 1])
             self.sa = np.column_stack((channel1_silence, channel2_silence))
 
+        else:
+            print("Incorrect count of audio channels")
+
     def cut_silence(self):
-        self.y = replace_arrays(self.y, self.sa)
+        if np.shape(self.y)[1] == 1:
+            self.y = replace_arrays(self.y, self.sa)
+
+        elif np.shape(self.y)[1] == 2:
+            channel1 = replace_arrays(self.y[:, 0], self.sa[:, 0])
+            channel2 = replace_arrays(self.y[:, 1], self.sa[:, 1])
+            self.y = np.column_stack((channel1, channel2))
+
+        else:
+            print("Incorrect count of audio channels")
 
     def export(self, path):
         scipy.io.wavfile.write(path, self.sr, self.y)

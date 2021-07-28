@@ -1,8 +1,8 @@
 import tkinter as tk
-import matplotlib.pyplot as plt
-import numpy as np
 from tkinter import filedialog
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+import numpy as np
 
 
 def file_browse():
@@ -15,50 +15,40 @@ def file_save():
     return path
 
 
-#zmienić koniecznie ten sposób
-class UserInterface:
-    def __init__(self, wave, top_silence):
+class CanvasDraw:
+    def __init__(self, wave):
         self.root = tk.Tk()
         self.root.title('Silence trimmer')
         self.root.config(background="white")
-        plot_button = tk.Button(master=self.root, height=2, width=10, text="Plot", command=self.make_canvas(wave, top_silence))
+
+        fig = plt.figure(figsize=(15, 5))
+        self.canvas = FigureCanvasTkAgg(fig, master=self.root)
+        self.canvas.get_tk_widget().pack()
+
+        #interfejs do zrobienia
+        plot_button = tk.Button(self.root, text='Plot', command=self.plot(wave.y, wave.sr, 'blue'))
         plot_button.pack()
+        wave.detect_silence(0.05)
+        silence_button = tk.Button(self.root, text='Plot', command=self.plot(wave.sa, wave.sr, 'red'))
+        silence_button.pack()
+
+        toolbar = NavigationToolbar2Tk(self.canvas, self.root)
+        toolbar.update()
+        self.canvas.get_tk_widget().pack()
+
         self.root.mainloop()
 
-    def make_canvas(self, wave, top_silence):
-        fig = plt.figure(figsize=(15, 5))
-        canvas = FigureCanvasTkAgg(fig, master=self.root)
-        self.plot(wave.y, wave.sr, 'b')
-        canvas.draw()
-        canvas.get_tk_widget().pack()
-        toolbar = NavigationToolbar2Tk(canvas, self.root)
-        toolbar.update()
-        canvas.get_tk_widget().pack()
-        wave.detect_silence(top_silence)
-        self.plot(wave.sa, wave.sr, 'r')
-        canvas.draw()
-
-    def plot(self, array, rate, color):
-        time = np.linspace(0., array.shape[0]/rate, array.shape[0])
-        plt.plot(time, array, color, alpha=0.8)
+    def plot(self, array, sr, color):
+        time = np.linspace(0., array.shape[0] / sr, array.shape[0])
+        if np.shape(array)[1] == 1:
+            plt.plot(time, array, color=color)
+        elif np.shape(array)[1] == 2:
+            plt.subplot(211)
+            plt.plot(time, array[:, 0], color=color)
+            plt.subplot(212)
+            plt.plot(time, array[:, 1], color=color)
+        else:
+            print("Incorrect count of audio channels")
         plt.xlabel('Time [s]')
         plt.ylabel('Amplitude')
-
-
-# class Graph:
-#     def __init__(self, wave, root):
-#         self.wave = wave
-#         self.fig = plt.figure(figsize=(15, 5))
-#         self.canvas = FigureCanvasTkAgg(self.fig, master=root)
-#         self.canvas.get_tk_widget().pack()
-#         toolbar = NavigationToolbar2Tk(self.canvas, root)
-#         toolbar.update()
-#         self.canvas.get_tk_widget().pack()
-#
-#     def draw_fresh(self):
-#         librosa.display.waveshow(self.wave.y, self.wave.sr, alpha=0.8)
-#         self.canvas.draw()
-#
-#     def draw_trimmed(self, top_silence):
-#         librosa.display.waveshow(self.wave.detect_silence(top_silence), self.wave.sr, alpha=0.8, color='red')
-#         self.canvas.draw()
+        self.canvas.draw()
