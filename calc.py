@@ -47,7 +47,7 @@ class SoundWave:
         self.sa = np.empty(np.shape(self.y))
 
     def detect_silence(self, top):
-        trim_level = np.amax(self.y) * top
+        trim_level = np.amax(self.y) * top/100
 
         if np.shape(self.y)[1] == 1:
             silent_indices = clear_array(np.where(abs(self.y) < trim_level)[0])
