@@ -49,17 +49,19 @@ class SoundWave:
     def detect_silence(self, top):
         trim_level = np.amax(self.y) * top/100
 
-        if np.shape(self.y)[1] == 1:
+        if len(np.shape(self.y)) == 1:
             silent_indices = clear_array(np.where(abs(self.y) < trim_level)[0])
             self.sa = indices_to_values(silent_indices, self.y)
 
-        elif np.shape(self.y)[1] == 2:
+        elif len(np.shape(self.y)) == 2:
             channel1 = clear_array(np.where(abs(self.y[:, 0]) < trim_level)[0])
             channel2 = clear_array(np.where(abs(self.y[:, 1]) < trim_level)[0])
             if channel1.size > channel2.size:
-                channel2 = np.pad(channel2, (int((channel1.size - channel2.size)/2),), 'symmetric')
+                delta = channel1.size - channel2.size
+                channel2 = np.pad(channel2, (0, int(delta)), 'symmetric')
             elif channel2.size > channel1.size:
-                channel1 = np.pad(channel1, (int((channel2.size - channel1.size)/2),), 'symmetric')
+                delta = channel2.size - channel1.size
+                channel1 = np.pad(channel1, (0, int(delta)), 'symmetric')
             channel1_silence = indices_to_values(channel1, self.y[:, 0])
             channel2_silence = indices_to_values(channel2, self.y[:, 1])
             self.sa = np.column_stack((channel1_silence, channel2_silence))
@@ -68,20 +70,27 @@ class SoundWave:
             print('Incorrect count of audio channels')
 
     def cut_silence(self):
-        if np.shape(self.y)[1] == 1:
+        if len(np.shape(self.y)) == 1:
             self.y = replace_arrays(self.y, self.sa)
 
-        elif np.shape(self.y)[1] == 2:
+        elif len(np.shape(self.y)) == 2:
             channel1 = replace_arrays(self.y[:, 0], self.sa[:, 0])
             channel2 = replace_arrays(self.y[:, 1], self.sa[:, 1])
             if channel1.size > channel2.size:
-                channel2 = np.pad(channel2, (int((channel1.size - channel2.size)/2),), 'symmetric')
+                delta = channel1.size - channel2.size
+                channel2 = np.pad(channel2, (0, int(delta)), 'symmetric')
             elif channel2.size > channel1.size:
-                channel1 = np.pad(channel1, (int((channel2.size - channel1.size)/2),), 'symmetric')
+                delta = channel2.size - channel1.size
+                channel1 = np.pad(channel1, (0, int(delta)), 'symmetric')
             self.y = np.column_stack((channel1, channel2))
 
         else:
             print('Incorrect count of audio channels')
 
-    def export(self, path):
-        scipy.io.wavfile.write(path + '.wav', self.sr, self.y)
+    def export_int16(self, path):
+        if path != '':
+            scipy.io.wavfile.write(path + '.wav', self.sr, self.y.astype(np.int16))
+
+    def export_int32(self, path):
+        if path != '':
+            scipy.io.wavfile.write(path + '.wav', self.sr, self.y.astype(np.int32))
