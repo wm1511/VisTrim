@@ -65,7 +65,7 @@ class SoundWave:
             self.sa = np.column_stack((channel1_silence, channel2_silence))
 
         else:
-            print("Incorrect count of audio channels")
+            print('Incorrect count of audio channels')
 
     def cut_silence(self):
         if np.shape(self.y)[1] == 1:
@@ -74,10 +74,14 @@ class SoundWave:
         elif np.shape(self.y)[1] == 2:
             channel1 = replace_arrays(self.y[:, 0], self.sa[:, 0])
             channel2 = replace_arrays(self.y[:, 1], self.sa[:, 1])
+            if channel1.size > channel2.size:
+                channel2 = np.pad(channel2, (int((channel1.size - channel2.size)/2),), 'symmetric')
+            elif channel2.size > channel1.size:
+                channel1 = np.pad(channel1, (int((channel2.size - channel1.size)/2),), 'symmetric')
             self.y = np.column_stack((channel1, channel2))
 
         else:
-            print("Incorrect count of audio channels")
+            print('Incorrect count of audio channels')
 
     def export(self, path):
-        scipy.io.wavfile.write(path, self.sr, self.y)
+        scipy.io.wavfile.write(path + '.wav', self.sr, self.y)
