@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.io.wavfile
+import ui
 
 
 def clear_array(array):
@@ -47,7 +48,7 @@ class SoundWave:
         self.sa = np.empty(np.shape(self.y))
 
     def detect_silence(self, top):
-        trim_level = np.amax(self.y) * top/100
+        trim_level = np.amax(self.y) * (top/100)
 
         if len(np.shape(self.y)) == 1:
             silent_indices = clear_array(np.where(abs(self.y) < trim_level)[0])
@@ -67,7 +68,7 @@ class SoundWave:
             self.sa = np.column_stack((channel1_silence, channel2_silence))
 
         else:
-            print('Incorrect count of audio channels')
+            ui.channel_msb()
 
     def cut_silence(self):
         if len(np.shape(self.y)) == 1:
@@ -85,7 +86,7 @@ class SoundWave:
             self.y = np.column_stack((channel1, channel2))
 
         else:
-            print('Incorrect count of audio channels')
+            ui.channel_msb()
 
     def export_int16(self, path):
         if path != '':

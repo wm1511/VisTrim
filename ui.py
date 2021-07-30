@@ -30,7 +30,7 @@ def plot(array, sr, color):
         plt.title('Right channel')
         plt.plot(time, array[:, 1], color=color)
     else:
-        print('Incorrect count of audio channels')
+        channel_msb()
     plt.xlabel('Time [s]')
     plt.ylabel('Amplitude')
 
@@ -39,8 +39,13 @@ def only_numbers(char):
     return char.isdigit()
 
 
+def channel_msb():
+    tk.messagebox.showerror(title="File error", message="Incorrect count of audio channels!")
+
+
 class App:
     def __init__(self):
+        self.wave = None
         self.root = tk.Tk()
         self.root.title('Silence trimmer')
         fig = plt.figure(figsize=(15, 5))
@@ -122,9 +127,12 @@ class App:
             tk.messagebox.showerror(title="File error", message="You have to open sound file first!")
 
     def open_file(self):
-        self.plot_clear()
-        self.wave = calc.SoundWave(file_browse())
-        self.plot_fresh()
+        try:
+            self.plot_clear()
+            self.wave = calc.SoundWave(file_browse())
+            self.plot_fresh()
+        except FileNotFoundError:
+            tk.messagebox.showerror(title="File error", message="No file was selected!")
 
     def export_file(self):
         try:
@@ -133,6 +141,6 @@ class App:
             elif np.amax(self.wave.y) <= np.iinfo(np.int16).max:
                 self.wave.export_int16(file_save())
             else:
-                print('Incorrect data')
+                tk.messagebox.showerror(title="File error", message="Incorrect data!")
         except AttributeError:
             tk.messagebox.showerror(title="File error", message="You have to open sound file first!")
