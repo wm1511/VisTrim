@@ -3,7 +3,7 @@ import scipy.io.wavfile
 import ui
 
 
-def clear_array(array):
+def clear_array(array, silence_length):
     part_arrays = []
     begin = array[0]
     current = 0
@@ -12,7 +12,7 @@ def clear_array(array):
         if current + 1 < array.size:
             if el + 1 == array[current + 1]:
                 length += 1
-                if length > 220:
+                if length > silence_length:
                     part_arrays.append(array[begin:current])
                     length = 0
                     begin = current + 1
@@ -44,19 +44,22 @@ def replace_arrays(source_array, silence_array):
 
 class SoundWave:
     def __init__(self, path):
-        self.sr, self.y = scipy.io.wavfile.read(path)
+        try:
+            self.sr, self.y = scipy.io.wavfile.read(path)
+        except ValueError:
+            ui.data_msb()
         self.sa = np.empty(np.shape(self.y))
 
-    def detect_silence(self, top):
+    def detect_silence(self, top, length):
         trim_level = np.amax(self.y) * (top/100)
 
         if len(np.shape(self.y)) == 1:
-            silent_indices = clear_array(np.where(abs(self.y) < trim_level)[0])
+            silent_indices = clear_array(np.where(abs(self.y) < trim_level)[0], length)
             self.sa = indices_to_values(silent_indices, self.y)
 
         elif len(np.shape(self.y)) == 2:
-            channel1 = clear_array(np.where(abs(self.y[:, 0]) < trim_level)[0])
-            channel2 = clear_array(np.where(abs(self.y[:, 1]) < trim_level)[0])
+            channel1 = clear_array(np.where(abs(self.y[:, 0]) < trim_level)[0], length)
+            channel2 = clear_array(np.where(abs(self.y[:, 1]) < trim_level)[0], length)
             if channel1.size > channel2.size:
                 delta = channel1.size - channel2.size
                 channel2 = np.pad(channel2, (0, int(delta)), 'symmetric')

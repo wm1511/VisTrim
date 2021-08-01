@@ -43,6 +43,10 @@ def channel_msb():
     tk.messagebox.showerror(title="File error", message="Incorrect count of audio channels!")
 
 
+def data_msb():
+    tk.messagebox.showerror(title="File error", message="Unsupported data format!")
+
+
 class App:
     def __init__(self):
         self.wave = None
@@ -50,7 +54,7 @@ class App:
         self.root.title('Silence trimmer')
         fig = plt.figure(figsize=(15, 5))
         self.canvas = FigureCanvasTkAgg(fig, master=self.root)
-        self.canvas.get_tk_widget().grid(row=2, columnspan=3)
+        self.canvas.get_tk_widget().grid(row=2, columnspan=5)
 
         misc_frame = tk.Frame(self.root)
         open_button = tk.Button(misc_frame, text='Open file', command=self.open_file)
@@ -68,25 +72,36 @@ class App:
         silence_button.grid(row=1, pady=5)
         cut_button = tk.Button(plot_frame, text='Cut silence', command=self.cut_silence)
         cut_button.grid(row=2, pady=5)
-        plot_frame.grid(column=2, row=4, padx=50, pady=20, sticky=tk.E)
+        plot_frame.grid(column=4, row=4, padx=50, pady=20, sticky=tk.E)
 
         top_frame = tk.Frame(self.root)
         top_label = tk.Label(top_frame, text='% of sound amplitude considered as silence')
         top_label.grid()
-        validation = top_frame.register(only_numbers)
-        self.top_entry = tk.Entry(top_frame, width=5, validate='key', validatecommand=(validation, '%S'))
-        self.top_entry.grid(row=1, pady=5)
-        top_button = tk.Button(top_frame, text='Confirm value', command=self.initialize_detection)
-        top_button.grid(row=2, pady=5)
-        top_frame.grid(column=1, row=4, padx=50, pady=20)
+        self.top_spinbox = tk.Spinbox(top_frame, from_=1, to=99)
+        self.top_spinbox.delete(0)
+        self.top_spinbox.insert(0, 5)
+        self.top_spinbox.grid(row=1, pady=5)
+        top_frame.grid(column=3, row=4, padx=50, pady=20)
+
+        top_button = tk.Button(self.root, text='Detect silence', command=self.initialize_detection)
+        top_button.grid(column=2, row=4, pady=5)
+
+        chunk_frame = tk.Frame(self.root)
+        chunk_label = tk.Label(chunk_frame, text='Minimal duration of silence chunk in ms')
+        chunk_label.grid()
+        self.chunk_spinbox = tk.Spinbox(chunk_frame, from_=1, to=1000)
+        self.chunk_spinbox.delete(0)
+        self.chunk_spinbox.insert(0, 100)
+        self.chunk_spinbox.grid(row=1, pady=5)
+        chunk_frame.grid(column=1, row=4, padx=50, pady=20)
 
         toolbar_frame = tk.Frame(self.root)
         toolbar = NavigationToolbar2Tk(self.canvas, toolbar_frame)
         toolbar.update()
-        toolbar_frame.grid(column=1, row=0, pady=20)
+        toolbar_frame.grid(row=0, pady=20, columnspan=5)
 
-        tkinter.ttk.Separator(self.root, orient=tk.HORIZONTAL).grid(column=0, row=1, columnspan=3, sticky='ew')
-        tkinter.ttk.Separator(self.root, orient=tk.HORIZONTAL).grid(column=0, row=3, columnspan=3, sticky='ew')
+        tkinter.ttk.Separator(self.root, orient=tk.HORIZONTAL).grid(column=0, row=1, columnspan=5, sticky='ew')
+        tkinter.ttk.Separator(self.root, orient=tk.HORIZONTAL).grid(column=0, row=3, columnspan=5, sticky='ew')
 
         self.root.mainloop()
 
@@ -114,7 +129,7 @@ class App:
 
     def initialize_detection(self):
         try:
-            self.wave.detect_silence(int(self.top_entry.get()))
+            self.wave.detect_silence(int(self.top_spinbox.get()), int(self.chunk_spinbox.get()) * (self.wave.sr / 1000))
         except AttributeError:
             tk.messagebox.showerror(title="File error", message="You have to open sound file first!")
 
