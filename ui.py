@@ -129,8 +129,10 @@ class App:
 
     def initialize_detection(self):
         try:
-            self.wave.detect_silence(int(self.top_spinbox.get()), int(self.chunk_spinbox.get()) * (self.wave.sr / 1000))
-        except AttributeError:
+            self.wave.detect_silence(int(self.top_spinbox.get()),
+                                     int(int(self.chunk_spinbox.get()) * (self.wave.sr / 1000)))
+        except AttributeError as e:
+            print(e)
             tk.messagebox.showerror(title="File error", message="You have to open sound file first!")
 
     def cut_silence(self):
