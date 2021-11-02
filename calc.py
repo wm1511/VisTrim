@@ -42,6 +42,7 @@ def replace_arrays(source_array, silence_array):
     return result_array
 
 
+# TODO Naprawić reshape
 class SoundWave:
     def __init__(self, path):
         try:
@@ -49,9 +50,65 @@ class SoundWave:
         except ValueError as e:
             print(e)
             ui.data_msb()
-        self.sa = np.empty(np.shape(self.y))
+        self.na = None
+        self.sa = None
 
     def detect_silence(self, top, silence_length):
+        trim_level = np.amax(self.y) * (top / 100)
+        self.reshape_array(silence_length)
+        self.get_silence(trim_level)
+
+    def cut_silence(self):
+        self.y = self.na
+
+    def reshape_array(self, silence_length):
+        if len(np.shape(self.y)) == 1:
+            pad_front = int((silence_length - (self.y.size % silence_length)) / 2)
+            pad_end = int((silence_length - (self.y.size % silence_length)) / 2) \
+                if self.y.size % 2 == 0 else int((silence_length - (self.y.size % silence_length)) / 2) + 1
+            new_length = int((self.y.size + pad_front + pad_end) / silence_length)
+            self.y = np.reshape(np.pad(self.y, (pad_front, pad_end)), (new_length, silence_length))
+        elif len(np.shape(self.y)) == 2:
+            pad_front = int((silence_length - (self.y[:, 0].size % silence_length)) / 2)
+            pad_end = int((silence_length - (self.y[:, 0].size % silence_length)) / 2) \
+                if self.y[:, 0].size % 2 == 0 else int((silence_length - (self.y[:, 0].size % silence_length)) / 2) + 1
+            new_length = int((self.y[:, 0].size + pad_front + pad_end) / silence_length)
+            padded = np.row_stack((np.pad(self.y[:, 0], (pad_front, pad_end)),
+                                   np.pad(self.y[:, 1], (pad_front, pad_end))))
+            self.y = np.reshape(padded, (len(np.shape(self.y)), new_length, silence_length))
+
+    def get_silence(self, trim_level):
+        cut_arrays = []
+        silence_array = np.zeros(self.y.shape)
+        if len(np.shape(self.y)) == 2:
+            for i in range(self.y.shape[0]):
+                if np.abs(np.amax(self.y[i, :])) < trim_level:
+                    silence_array[i, :] = self.y[i, :]
+                else:
+                    cut_arrays.append(self.y[i, :])
+            self.sa = np.reshape(silence_array, (self.y.shape[1] * self.y.shape[2]))
+            self.na = np.reshape(np.hstack(cut_arrays), (len(cut_arrays) * self.y.shape[2]))
+            self.y = np.reshape(self.y, (self.y.shape[1] * self.y.shape[2]))
+        elif len(np.shape(self.y)) == 3:
+            for i in range(self.y.shape[1]):
+                if np.abs(np.amax(self.y[0, i, :])) < trim_level:
+                    silence_array[:, i, :] = self.y[:, i, :]
+                else:
+                    cut_arrays.append(self.y[:, i, :])
+            self.sa = np.reshape(silence_array, (self.y.shape[1] * self.y.shape[2], self.y.shape[0]))
+            self.na = np.reshape(np.hstack(cut_arrays), (len(cut_arrays) * self.y.shape[2], self.y.shape[0]))
+            self.y = np.reshape(self.y, (self.y.shape[1] * self.y.shape[2], self.y.shape[0]))
+            print(np.hstack(cut_arrays), np.hstack(cut_arrays).shape)
+
+    def export_int16(self, path):
+        if path != '':
+            scipy.io.wavfile.write(path + '.wav', self.sr, self.y.astype(np.int16))
+
+    def export_int32(self, path):
+        if path != '':
+            scipy.io.wavfile.write(path + '.wav', self.sr, self.y.astype(np.int32))
+
+    def detect_silence_old(self, top, silence_length):
         trim_level = np.amax(self.y) * (top / 100)
 
         if len(np.shape(self.y)) == 1:
@@ -59,8 +116,6 @@ class SoundWave:
             self.sa = indices_to_values(silent_indices, self.y)
 
         elif len(np.shape(self.y)) == 2:
-            # self.reshape_array(silence_length)
-            # self.get_silence(trim_level)
             channel1 = clear_array(np.where(abs(self.y[:, 0]) < trim_level)[0], silence_length)
             channel2 = clear_array(np.where(abs(self.y[:, 1]) < trim_level)[0], silence_length)
             if channel1.size > channel2.size:
@@ -76,7 +131,7 @@ class SoundWave:
         else:
             ui.channel_msb()
 
-    def cut_silence(self):
+    def cut_silence_old(self):
         if len(np.shape(self.y)) == 1:
             self.y = replace_arrays(self.y, self.sa)
 
@@ -93,32 +148,3 @@ class SoundWave:
 
         else:
             ui.channel_msb()
-
-    def export_int16(self, path):
-        if path != '':
-            scipy.io.wavfile.write(path + '.wav', self.sr, self.y.astype(np.int16))
-
-    def export_int32(self, path):
-        if path != '':
-            scipy.io.wavfile.write(path + '.wav', self.sr, self.y.astype(np.int32))
-
-    def reshape_array(self, silence_length):
-        pad_front = int((silence_length - (self.y[:, 0].size % silence_length)) / 2)
-        pad_end = int((silence_length - (self.y[:, 0].size % silence_length)) / 2) \
-            if self.y[:, 0].size % 2 == 0 else int((silence_length - (self.y[:, 0].size % silence_length)) / 2) + 1
-        new_length = int((self.y[:, 0].size + pad_front + pad_end) / silence_length)
-
-        if len(np.shape(self.y)) == 1:
-            self.y = np.reshape(np.pad(self.y, (pad_front, pad_end)), (new_length, silence_length))
-        elif len(np.shape(self.y)) == 2:
-            self.y = np.row_stack((np.pad(self.y[:, 0], (pad_front, pad_end)),
-                                   np.pad(self.y[:, 1], (pad_front, pad_end))))
-            self.y = np.reshape(self.y, (2, new_length, silence_length))
-
-    def get_silence(self, trim_level):
-        silence_array = np.zeros(self.y.shape)
-        for i in range(self.y.shape[1]):
-            if np.abs(np.amax(self.y[0, i, :])) < trim_level:
-                silence_array[:, i, :] = self.y[:, i, :]
-        print(silence_array)
-        # TODO If z ilością kanałów, zapisać jako self.sa
