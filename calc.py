@@ -44,8 +44,8 @@ class SoundWave:
                     silence_array[i, :] = self.wa[i, :]
                 else:
                     cut_arrays.append(self.wa[i, :])
-            self.sa = np.reshape(silence_array, (self.wa.shape[1] * self.wa.shape[2]))
-            self.na = np.rot90(np.reshape(np.row_stack(cut_arrays), (len(cut_arrays) * self.wa.shape[2])), k=3)
+            self.sa = np.reshape(silence_array, (self.wa.shape[0] * self.wa.shape[1]))
+            self.na = np.reshape(np.row_stack(cut_arrays), (len(cut_arrays) * self.wa.shape[1]))
         elif len(np.shape(self.wa)) == 3:
             for i in range(self.wa.shape[1]):
                 if np.abs(np.amax(self.wa[0, i, :])) < trim_level:
