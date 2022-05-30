@@ -1,7 +1,5 @@
 # VisTrim
 ###### Adjustable silence trimmer for .wav files
-## Prerequisites
-1. Install [**Python**](https://www.python.org/downloads/).
 ## Usage
 1. Run `main.py` to start program. 
 2. Click **Open file** button and select a file to trim.
@@ -14,3 +12,5 @@ You can use a toolbar to see the plot precisely.
 7. If plot is right, click **Cut silence** button, and you will get a trimmed sound wave. 
 8. **Save file** to desired directory.
 9. **Open file** again or **Exit**.
+## App screenshot
+![User interface](vistrim.jpg)
